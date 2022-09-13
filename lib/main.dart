@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
+import 'package:flutter_rethinkdb_poc/message.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,17 +31,26 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   var nickname = "";
+  final currentMessageController = TextEditingController();
+
+  final _biggerFont = const TextStyle(fontSize: 18);
+  final conversation = <Message>[
+    Message(text: "Hello", nickname: "alice"),
+    Message(text: "How are you", nickname: "bob"),
+    Message(text: "All right", nickname: "alice"),
+    Message(text: "Just a little bit tired", nickname: "alice"),
+    Message(text: "And you?", nickname: "alice"),
+    Message(text: "I'm fine thanks", nickname: "bob"),
+    Message(text: "What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today?", nickname: "eve"),
+    Message(text: "I don't know", nickname: "bob"),
+  ];
 
   insertNameDialog(BuildContext context) {
     return AlertDialog(
       title: const Text('Please identify yourself'),
       content: TextField(
         decoration: const InputDecoration(hintText: "Your nickname"),
-        onChanged: (value) {
-          setState(() {
-            nickname = value;
-          });
-        }
+        onChanged: (value) => setState(() => nickname = value)
       ),
       actions: [
         TextButton(
@@ -51,7 +62,10 @@ class _MainPageState extends State<MainPage> {
   }
 
   sendMessage() {
-
+    setState(() => {
+      conversation.add(Message(text: currentMessageController.value.text, nickname: nickname)),
+      currentMessageController.clear()
+    });
   }
 
   @override
@@ -71,12 +85,19 @@ class _MainPageState extends State<MainPage> {
             flex: 1,
             child: Align(
                 alignment: Alignment.center,
-                child: Text("Hello $nickname")
+                child: Text("Welcome back $nickname", style: _biggerFont)
             )
           ),
-          const Expanded(
+          Expanded(
             flex: 8,
-            child:  Placeholder(),
+            child: ListView(
+              children: conversation.map((message) =>
+              Container(
+                margin: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(8),
+                color: Color(message.nickname.hashCode).withOpacity(1.0),
+                child: Text("${message.nickname == nickname ? "You" : message.nickname}: ${message.text}"),
+              )).toList())
           ),
           Expanded(
             flex: 1,
@@ -84,14 +105,15 @@ class _MainPageState extends State<MainPage> {
                 alignment: Alignment.bottomCenter,
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                         flex: 9,
                         child: TextField(
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                                 isDense: true,
                                 border: OutlineInputBorder(),
                                 hintText: "Your message"
-                            )
+                            ),
+                            controller: currentMessageController
                         )
                     ),
                     Expanded(
@@ -103,7 +125,6 @@ class _MainPageState extends State<MainPage> {
                     )
                   ],
                 )
-                /*child: TextField(decoration: InputDecoration(border: OutlineInputBorder()))*/
             )
           )
         ]

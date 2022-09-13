@@ -45,6 +45,7 @@ class _MainPageState extends State<MainPage> {
       title: const Text('Please identify yourself'),
       content: TextField(
         decoration: const InputDecoration(hintText: "Your nickname"),
+        onSubmitted: (_) => Navigator.of(context).pop(),
         onChanged: (value) => setState(() => nickname = value)
       ),
       actions: [
@@ -57,31 +58,22 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> sendMessage() async {
-    db.table('conversation')
-        .insert([{
-          'text': currentMessageController.value.text,
-          'nickname': nickname,
-          'dateTime': DateTime.now()
-        }]).run(connection!);
+    final message = Message(currentMessageController.value.text, nickname, DateTime.now());
+    db.table('conversation').insert(message.toMap()).run(connection!);
     setState(() => currentMessageController.clear());
   }
 
   void fetchMessages() {
-    db.table('conversation').orderBy('dateTime').run(connection!).then((conversationDb) {
-      conversationDb.forEach((messageDb) {
-        final message = Message(messageDb["text"], messageDb["nickname"], DateTime.now());
-        setState(() => conversation.add(message));
-      });
-    });
+    db.table('conversation').orderBy('dateTime').run(connection!).then((conversationDb) =>
+        conversationDb.forEach((messageDb) => setState(() =>
+            conversation.add(Message.fromMap(messageDb)))));
   }
 
   void listenMessages() {
     db.table('conversation').changes().run(connection!).then((value) {
-      final feed = value as Feed;
-      feed.forEach((element) {
+      (value as Feed).forEach((element) {
         final messageDb = element["new_val"];
-        final message = Message(messageDb["text"], messageDb["nickname"], DateTime.now());
-        setState(() => conversation.add(message));
+        setState(() => conversation.add(Message.fromMap(messageDb)));
       });
     });
   }
@@ -136,8 +128,10 @@ class _MainPageState extends State<MainPage> {
                             decoration: const InputDecoration(
                                 isDense: true,
                                 border: OutlineInputBorder(),
-                                hintText: "Your message"
+                                hintText: "Your message",
                             ),
+                            onSubmitted: (_) => sendMessage(),
+                            textInputAction: TextInputAction.go,
                             controller: currentMessageController
                         )
                     ),

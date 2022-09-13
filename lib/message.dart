@@ -5,6 +5,15 @@ class Message {
 
   Message(this.text, this.nickname, this.dateTime);
 
-  /*Message.fromJson(Map<String, dynamic> json) :
-        text = json['text'], nickname = json['nickname'], dateTime = json['dateTime'];*/
+  static Message fromMap(Map<String, dynamic> map) {
+    return Message(map['text'], map['nickname'], map['dateTime']);
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'text': text,
+      'nickname': nickname,
+      'dateTime': dateTime
+    };
+  }
 }

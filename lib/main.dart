@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import 'package:rethink_db_ns/rethink_db_ns.dart';
+
 import 'package:flutter_rethinkdb_poc/message.dart';
 
 void main() {
@@ -33,17 +34,11 @@ class _MainPageState extends State<MainPage> {
   var nickname = "";
   final currentMessageController = TextEditingController();
 
+  DB db = RethinkDb().db("flutter_rethinkdb_poc");
+  Connection? connection;
+
   final _biggerFont = const TextStyle(fontSize: 18);
-  final conversation = <Message>[
-    Message(text: "Hello", nickname: "alice"),
-    Message(text: "How are you", nickname: "bob"),
-    Message(text: "All right", nickname: "alice"),
-    Message(text: "Just a little bit tired", nickname: "alice"),
-    Message(text: "And you?", nickname: "alice"),
-    Message(text: "I'm fine thanks", nickname: "bob"),
-    Message(text: "What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today? What are you doing today?", nickname: "eve"),
-    Message(text: "I don't know", nickname: "bob"),
-  ];
+  final conversation = <Message>[];
 
   insertNameDialog(BuildContext context) {
     return AlertDialog(
@@ -61,16 +56,46 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  sendMessage() {
-    setState(() => {
-      conversation.add(Message(text: currentMessageController.value.text, nickname: nickname)),
-      currentMessageController.clear()
+  Future<void> sendMessage() async {
+    db.table('conversation')
+        .insert([{
+          'text': currentMessageController.value.text,
+          'nickname': nickname,
+          'dateTime': DateTime.now()
+        }]).run(connection!);
+    setState(() => currentMessageController.clear());
+  }
+
+  void fetchMessages() {
+    db.table('conversation').orderBy('dateTime').run(connection!).then((conversationDb) {
+      conversationDb.forEach((messageDb) {
+        final message = Message(messageDb["text"], messageDb["nickname"], DateTime.now());
+        setState(() => conversation.add(message));
+      });
+    });
+  }
+
+  void listenMessages() {
+    db.table('conversation').changes().run(connection!).then((value) {
+      final feed = value as Feed;
+      feed.forEach((element) {
+        final messageDb = element["new_val"];
+        final message = Message(messageDb["text"], messageDb["nickname"], DateTime.now());
+        setState(() => conversation.add(message));
+      });
     });
   }
 
   @override
   void initState() {
     super.initState();
+
+    RethinkDb().connect(host: '192.168.248.162', port: 28015).then((value) {
+      connection = value;
+      fetchMessages();
+      listenMessages();
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) =>
         showDialog(context: context, builder: (_) => insertNameDialog(context)));
   }

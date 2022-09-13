@@ -1,6 +1,10 @@
 class Message {
-  String text;
-  String nickname;
+  final String text;
+  final String nickname;
+  final DateTime dateTime;
 
-  Message({required this.text, required this.nickname});
+  Message(this.text, this.nickname, this.dateTime);
+
+  /*Message.fromJson(Map<String, dynamic> json) :
+        text = json['text'], nickname = json['nickname'], dateTime = json['dateTime'];*/
 }

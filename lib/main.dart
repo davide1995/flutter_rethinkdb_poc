@@ -58,7 +58,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> sendMessage() async {
-    final message = Message(currentMessageController.value.text, nickname, DateTime.now());
+    final message = Message(null, currentMessageController.value.text, nickname, DateTime.now());
     db.table('conversation').insert(message.toMap()).run(connection!);
     setState(() => currentMessageController.clear());
   }
@@ -66,16 +66,37 @@ class _MainPageState extends State<MainPage> {
   void fetchMessages() {
     db.table('conversation').orderBy('dateTime').run(connection!).then((conversationDb) =>
         conversationDb.forEach((messageDb) => setState(() =>
-            conversation.add(Message.fromMap(messageDb)))));
+            conversation.add(Message.fromMap(messageDb)!))));
   }
 
   void listenMessages() {
     db.table('conversation').changes().run(connection!).then((value) {
       (value as Feed).forEach((element) {
-        final messageDb = element["new_val"];
-        setState(() => conversation.add(Message.fromMap(messageDb)));
+        final newMessage = Message.fromMap(element["new_val"]);
+        final oldMessage = Message.fromMap(element["old_val"]);
+        if (newMessage == null && oldMessage != null) {
+          // Remove operation intercepted
+          setState(() => conversation.remove(oldMessage));
+        } else if (newMessage != null && oldMessage == null) {
+          // Creation operation intercepted
+          setState(() => conversation.add(newMessage));
+        } else if (newMessage != null && oldMessage != null) {
+          // Modification operation intercepted
+          setState(() => conversation[conversation.indexWhere((element) => element.id == newMessage.id)] = newMessage);
+        }
       });
     });
+  }
+
+  Future<bool> removeMessage(Message message) async {
+    db.table('conversation').get(message.id).delete().run(connection!);
+    return true;
+  }
+
+  Future<bool> transformMessageTextUppercase(Message message) async {
+    message.text = message.text.toUpperCase();
+    db.table('conversation').get(message.id).update(message.toMap()).run(connection!);
+    return false;
   }
 
   @override
@@ -117,7 +138,11 @@ class _MainPageState extends State<MainPage> {
                   margin: const EdgeInsets.all(2),
                   padding: const EdgeInsets.all(8),
                   color: Color(message.nickname.hashCode).withOpacity(1.0),
-                  child: Text("${message.nickname == nickname ? "You" : message.nickname} on ${message.dateTime}:\n${message.text}"),
+                  child: Dismissible(
+                    key: Key(message.id!),
+                    child: Text("${message.nickname == nickname ? "You" : message.nickname} on ${message.dateTime}:\n${message.text}"),
+                    confirmDismiss: (direction) => direction == DismissDirection.endToStart ? removeMessage(message) : transformMessageTextUppercase(message)
+                  ),
                 );
               })
           ),

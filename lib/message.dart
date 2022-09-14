@@ -1,12 +1,14 @@
 class Message {
-  final String text;
-  final String nickname;
-  final DateTime dateTime;
+  String? id;
+  String text;
+  String nickname;
+  DateTime dateTime;
 
-  Message(this.text, this.nickname, this.dateTime);
+  Message(this.id, this.text, this.nickname, this.dateTime);
 
-  static Message fromMap(Map<String, dynamic> map) {
-    return Message(map['text'], map['nickname'], map['dateTime']);
+  static Message? fromMap(Map<String, dynamic>? map) {
+    if (map == null) return null;
+    return Message(map['id'], map['text'], map['nickname'], map['dateTime']);
   }
 
   Map<String, dynamic> toMap() {
@@ -16,4 +18,12 @@ class Message {
       'dateTime': dateTime
     };
   }
+
+  @override
+  bool operator == (Object other) =>
+      other is Message && id == other.id && text == other.text &&
+          nickname == other.nickname && dateTime == other.dateTime;
+
+  @override
+  int get hashCode => Object.hash(id, text, nickname, dateTime);
 }

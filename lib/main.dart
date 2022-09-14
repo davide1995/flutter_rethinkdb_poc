@@ -107,14 +107,19 @@ class _MainPageState extends State<MainPage> {
           ),
           Expanded(
             flex: 8,
-            child: ListView(
-              children: conversation.map((message) =>
-              Container(
-                margin: const EdgeInsets.all(2),
-                padding: const EdgeInsets.all(8),
-                color: Color(message.nickname.hashCode).withOpacity(1.0),
-                child: Text("${message.nickname == nickname ? "You" : message.nickname}: ${message.text}"),
-              )).toList())
+            child: ListView.builder(
+              reverse: true,
+              itemCount: conversation.length,
+              itemBuilder: (context, index) {
+                final reversedIndex = conversation.length - 1 - index;
+                final message = conversation[reversedIndex];
+                return Container(
+                  margin: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(8),
+                  color: Color(message.nickname.hashCode).withOpacity(1.0),
+                  child: Text("${message.nickname == nickname ? "You" : message.nickname} on ${message.dateTime}:\n${message.text}"),
+                );
+              })
           ),
           Expanded(
             flex: 1,
@@ -123,24 +128,24 @@ class _MainPageState extends State<MainPage> {
                 child: Row(
                   children: [
                     Expanded(
-                        flex: 9,
-                        child: TextField(
-                            decoration: const InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                                hintText: "Your message",
-                            ),
-                            onSubmitted: (_) => sendMessage(),
-                            textInputAction: TextInputAction.go,
-                            controller: currentMessageController
-                        )
+                      flex: 6,
+                      child: TextField(
+                          decoration: const InputDecoration(
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                              hintText: "Your message",
+                          ),
+                          onSubmitted: (_) => sendMessage(),
+                          textInputAction: TextInputAction.go,
+                          controller: currentMessageController
+                      )
                     ),
                     Expanded(
-                        flex: 1,
-                        child: TextButton(
-                          child: const Text('Send'),
-                          onPressed: () => sendMessage()
-                        )
+                      flex: 1,
+                      child: TextButton(
+                        child: const Text('Send'),
+                        onPressed: () => sendMessage()
+                      )
                     )
                   ],
                 )
